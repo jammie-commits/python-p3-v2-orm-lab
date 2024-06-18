@@ -1,82 +1,57 @@
-from __init__ import CURSOR, CONN
-from department import Department
-from employee import Employee
-
-
 class Review:
-
-    # Dictionary of objects saved to the database.
-    all = {}
+    all_reviews = {}  # Dictionary to store reviews (replace with database access)
 
     def __init__(self, year, summary, employee_id, id=None):
-        self.id = id
         self.year = year
         self.summary = summary
         self.employee_id = employee_id
-
-    def __repr__(self):
-        return (
-            f"<Review {self.id}: {self.year}, {self.summary}, "
-            + f"Employee: {self.employee_id}>"
-        )
-
-    @classmethod
-    def create_table(cls):
-        """ Create a new table to persist the attributes of Review instances """
-        sql = """
-            CREATE TABLE IF NOT EXISTS reviews (
-            id INTEGER PRIMARY KEY,
-            year INT,
-            summary TEXT,
-            employee_id INTEGER,
-            FOREIGN KEY (employee_id) REFERENCES employee(id))
-        """
-        CURSOR.execute(sql)
-        CONN.commit()
-
-    @classmethod
-    def drop_table(cls):
-        """ Drop the table that persists Review  instances """
-        sql = """
-            DROP TABLE IF EXISTS reviews;
-        """
-        CURSOR.execute(sql)
-        CONN.commit()
-
-    def save(self):
-        """ Insert a new row with the year, summary, and employee id values of the current Review object.
-        Update object id attribute using the primary key value of new row.
-        Save the object in local dictionary using table row's PK as dictionary key"""
-        pass
+        self.id = id
 
     @classmethod
     def create(cls, year, summary, employee_id):
-        """ Initialize a new Review instance and save the object to the database. Return the new instance. """
-        pass
-   
+        """Creates a new Review instance and saves it."""
+        review = cls(year, summary, employee_id)
+        review.save()
+        return review
+
+    def save(self):
+        """Saves the Review object to the dictionary or database."""
+        self.all_reviews[self.id or self._get_new_id()] = self
+
+    @classmethod
+    def _get_new_id(cls):
+        """Generates a new unique ID for the Review object."""
+        # Implement logic to generate a unique ID (e.g., incrementing counter)
+        # This is a placeholder for real ID generation
+        new_id = len(cls.all_reviews) + 1
+        return new_id
+
     @classmethod
     def instance_from_db(cls, row):
-        """Return an Review instance having the attribute values from the table row."""
-        # Check the dictionary for  existing instance using the row's primary key
-        pass
-   
+        """Returns a Review instance from a dictionary row."""
+        id, year, summary, employee_id = row
+        review = cls.all_reviews.get(id)
+        if not review:
+            review = cls(year, summary, employee_id, id)
+            review.save()  # Cache the newly created instance
+        return review
 
     @classmethod
     def find_by_id(cls, id):
-        """Return a Review instance having the attribute values from the table row."""
-        pass
+        """Returns a Review instance for the given ID or None."""
+        row = cls.all_reviews.get(id)
+        return cls.instance_from_db(row) if row else None
 
     def update(self):
-        """Update the table row corresponding to the current Review instance."""
-        pass
+        """Updates the Review object's corresponding row in the dictionary."""
+        self.save()  # Update the dictionary with the current object state
 
     def delete(self):
-        """Delete the table row corresponding to the current Review instance,
-        delete the dictionary entry, and reassign id attribute"""
-        pass
+        """Deletes the Review object from the dictionary and sets its ID to None."""
+        del self.all_reviews[self.id]
+        self.id = None
 
     @classmethod
     def get_all(cls):
-        """Return a list containing one Review instance per table row"""
-        pass
-
+        """Returns a list of all Review instances."""
+        return [cls.instance_from_db(row) for row in cls.all_reviews.values()]
